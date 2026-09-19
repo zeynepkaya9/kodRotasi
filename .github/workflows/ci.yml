@@ -9,9 +9,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -21,7 +21,7 @@ jobs:
         working-directory: backend
         run: ./mvnw test
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: npm
@@ -38,4 +38,3 @@ jobs:
       - name: Frontend üretim derlemesi
         working-directory: frontend
         run: npm run build
-
