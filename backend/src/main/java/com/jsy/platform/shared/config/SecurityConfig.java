@@ -39,6 +39,17 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/assets/**",
+                                "/favicon.ico",
+                                "/login",
+                                "/register",
+                                "/onboarding",
+                                "/projects",
+                                "/workspace",
+                                "/progress",
+                                "/dashboard",
                                 "/api/v1/auth/**",
                                 "/api/v1/assessment/questions",
                                 "/api/v1/projects",
