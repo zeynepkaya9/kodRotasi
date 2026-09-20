@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("dev")
+@Profile({"dev", "prod"})
 public class DataSeeder implements CommandLineRunner {
 
     private final java.util.Map<Long, String> referenceSolutions = new java.util.HashMap<>();
