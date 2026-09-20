@@ -13,11 +13,10 @@ COPY backend/src ./src
 COPY --from=frontend-build /app/frontend/dist ./src/main/resources/static
 RUN mvn -B -DskipTests package
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jdk-alpine
 WORKDIR /app
 RUN addgroup -S kodrotasi && adduser -S kodrotasi -G kodrotasi
 COPY --from=backend-build /app/target/platform-0.0.1-SNAPSHOT.jar app.jar
 USER kodrotasi
 EXPOSE 8080
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
-
