@@ -50,6 +50,7 @@ public class SecurityConfig {
                                 "/workspace",
                                 "/progress",
                                 "/dashboard",
+                                "/bank-interview",
                                 "/api/v1/auth/**",
                                 "/api/v1/assessment/questions",
                                 "/api/v1/projects",

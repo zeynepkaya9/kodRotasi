@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 /** Parses submissions only. Never compiles or executes learner code. */
 public final class JavaSource {
     private final List<ClassTree> types = new ArrayList<>();
+    private final Map<ClassTree, String> typeSources = new IdentityHashMap<>();
     private final List<AnnotationTree> annotations = new ArrayList<>();
     private final List<MethodInvocationTree> calls = new ArrayList<>();
     private final List<MemberSelectTree> selections = new ArrayList<>();
@@ -27,8 +28,14 @@ public final class JavaSource {
         try (var files = compiler.getStandardFileManager(diagnostics, Locale.ROOT, null)) {
             var task = (JavacTask) compiler.getTask(null, files, diagnostics, List.of("-proc:none", "--release", "17"), null, List.of(source));
             for (CompilationUnitTree unit : task.parse()) {
+                var positions = com.sun.source.util.Trees.instance(task).getSourcePositions();
                 new TreeScanner<Void, Void>() {
-                    @Override public Void visitClass(ClassTree tree, Void ignored) { types.add(tree); return super.visitClass(tree, ignored); }
+                    @Override public Void visitClass(ClassTree tree, Void ignored) {
+                        types.add(tree);
+                        long start = positions.getStartPosition(unit, tree), end = positions.getEndPosition(unit, tree);
+                        if (start >= 0 && end >= start && end <= code.length()) typeSources.put(tree, code.substring((int) start, (int) end));
+                        return super.visitClass(tree, ignored);
+                    }
                     @Override public Void visitAnnotation(AnnotationTree tree, Void ignored) { annotations.add(tree); return super.visitAnnotation(tree, ignored); }
                     @Override public Void visitMethodInvocation(MethodInvocationTree tree, Void ignored) { calls.add(tree); return super.visitMethodInvocation(tree, ignored); }
                     @Override public Void visitMemberSelect(MemberSelectTree tree, Void ignored) { selections.add(tree); return super.visitMemberSelect(tree, ignored); }
@@ -41,6 +48,8 @@ public final class JavaSource {
     }
     public List<String> errors() { return errors; }
     public List<ClassTree> types() { return List.copyOf(types); }
+    // Preserve record declarations and compact constructors; Tree.toString() loses record syntax on JDK 17.
+    public String typeSource(ClassTree type) { return typeSources.getOrDefault(type, type.toString()); }
     private static String simple(String name) { return name.substring(name.lastIndexOf('.') + 1); }
     private static boolean annotation(ModifiersTree modifiers, String name) {
         return modifiers.getAnnotations().stream().anyMatch(a -> simple(a.getAnnotationType().toString()).equals(name));
@@ -54,6 +63,14 @@ public final class JavaSource {
         List<String> args = new ArrayList<>();
         while (matcher.find()) args.add(matcher.group(1));
         String arg = args.isEmpty() ? "" : args.get(0);
+        if (check.startsWith("callsMethod(")) return calls.stream()
+                .anyMatch(c -> simple(c.getMethodSelect().toString()).equals(arg));
+        if (check.startsWith("usesMember(") && args.size() == 2) return selections.stream()
+                .anyMatch(m -> m.getExpression().toString().equals(arg) && m.getIdentifier().contentEquals(args.get(1)));
+        if (check.startsWith("methodHasModifier(") && args.size() == 2) return types.stream()
+                .flatMap(t -> t.getMembers().stream()).filter(MethodTree.class::isInstance).map(MethodTree.class::cast)
+                .anyMatch(m -> m.getName().contentEquals(arg) && m.getModifiers().getFlags().stream()
+                        .anyMatch(flag -> flag.toString().equals(args.get(1))));
         if (check.startsWith("classHasAnnotation(")) return types.stream().anyMatch(t -> annotation(t.getModifiers(), arg));
         if (check.startsWith("classNamed(")) return types.stream().anyMatch(t -> t.getSimpleName().contentEquals(arg));
         if (check.startsWith("field(")) {

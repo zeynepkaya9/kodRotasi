@@ -9,6 +9,7 @@ import OnboardingPage from './features/onboarding/OnboardingPage'
 import ProjectSelectPage from './features/onboarding/ProjectSelectPage'
 import WorkspacePage from './features/workspace/WorkspacePage'
 import ProgressPage from './features/progress/ProgressPage'
+import BankInterviewPage from './features/interview/BankInterviewPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <SessionGate>{children}</SessionGate>
@@ -21,6 +22,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/bank-interview" element={<BankInterviewPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={
           <ProtectedRoute><DashboardRedirect /></ProtectedRoute>

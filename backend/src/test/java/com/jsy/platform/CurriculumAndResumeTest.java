@@ -31,6 +31,8 @@ class CurriculumAndResumeTest {
     @Autowired ProjectRepository projects;
     @Autowired PlatformTransactionManager transactions;
     @Autowired DataSeeder seeder;
+    @Autowired com.jsy.platform.taskengine.application.TaskEngineService taskEngine;
+    @Autowired com.jsy.platform.taskengine.infrastructure.UserStepProgressRepository stepProgress;
     @TempDir Path temp;
 
     @Test void everyReferenceSolutionPassesRulesAndProjectsCompile() {
@@ -48,7 +50,7 @@ class CurriculumAndResumeTest {
                         String imports = step.getSolutionCode().lines().filter(line -> line.startsWith("import ")).reduce("", (a, b) -> a + b + "\n");
                         for (var type : source.types()) {
                             Path file = output.resolve(type.getSimpleName() + ".java");
-                            Files.writeString(file, imports + "\n" + type);
+                            Files.writeString(file, imports + "\n" + source.typeSource(type));
                             files.add(file);
                         }
                         JavaSource starter = new JavaSource(step.getStarterCode());
@@ -73,6 +75,7 @@ class CurriculumAndResumeTest {
     private void checkReferenceBehavior(ProjectCode code, Path output) throws Exception {
         try (var loader = new URLClassLoader(new java.net.URL[]{output.toUri().toURL()}, getClass().getClassLoader())) {
             if (code == ProjectCode.BANK) {
+                checkBankInterviewBehavior(loader);
                 Class<?> test = loader.loadClass("AccountServiceTest");
                 Object instance = test.getConstructor().newInstance();
                 for (var method : test.getDeclaredMethods()) if (method.isAnnotationPresent(Test.class)) {
@@ -109,6 +112,80 @@ class CurriculumAndResumeTest {
                 assertEquals(true, item.getMethod("isCompleted").invoke(todo));
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void checkBankInterviewBehavior(ClassLoader loader) throws Exception {
+        var command = loader.loadClass("TransferCommand").getConstructor(Long.class, Long.class, BigDecimal.class);
+        Object valid = command.newInstance(1L, 2L, new BigDecimal("10.100"));
+        assertEquals(new BigDecimal("10.10"), valid.getClass().getMethod("amount").invoke(valid));
+        for (BigDecimal amount : Arrays.asList(null, BigDecimal.ZERO, new BigDecimal("-1"), new BigDecimal("1.001"))) {
+            assertThrows(java.lang.reflect.InvocationTargetException.class, () -> command.newInstance(1L, 2L, amount));
+        }
+        assertThrows(java.lang.reflect.InvocationTargetException.class, () -> command.newInstance(1L, 1L, BigDecimal.ONE));
+        assertThrows(java.lang.reflect.InvocationTargetException.class, () -> command.newInstance(null, 2L, BigDecimal.ONE));
+
+        var redis = org.mockito.Mockito.mock(org.springframework.data.redis.core.StringRedisTemplate.class);
+        org.springframework.data.redis.core.ValueOperations<String, String> values = org.mockito.Mockito.mock(org.springframework.data.redis.core.ValueOperations.class);
+        org.mockito.Mockito.when(redis.opsForValue()).thenReturn(values);
+        var cache = loader.loadClass("BranchCache").getConstructor(org.springframework.data.redis.core.StringRedisTemplate.class).newInstance(redis);
+        var get = cache.getClass().getMethod("get", String.class, java.util.function.Supplier.class);
+        java.util.concurrent.atomic.AtomicInteger dbCalls = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.function.Supplier<String> database = () -> { dbCalls.incrementAndGet(); return "09:00–17:00"; };
+        org.mockito.Mockito.when(values.get("branch:info:1")).thenReturn("cached");
+        assertEquals("cached", get.invoke(cache, "1", database));
+        assertEquals(0, dbCalls.get());
+        org.mockito.Mockito.when(values.get("branch:info:1")).thenReturn(null);
+        assertEquals("09:00–17:00", get.invoke(cache, "1", database));
+        org.mockito.Mockito.verify(values).set("branch:info:1", "09:00–17:00", java.time.Duration.ofMinutes(5));
+        org.mockito.Mockito.when(values.get("branch:info:1")).thenThrow(new org.springframework.data.redis.RedisConnectionFailureException("offline"));
+        org.mockito.Mockito.doThrow(new org.springframework.data.redis.RedisConnectionFailureException("offline"))
+                .when(values).set(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(java.time.Duration.class));
+        assertEquals("09:00–17:00", get.invoke(cache, "1", database));
+        assertThrows(java.lang.reflect.InvocationTargetException.class, () -> get.invoke(cache, "1", (java.util.function.Supplier<String>) () -> { throw new IllegalStateException("db down"); }));
+        org.mockito.Mockito.clearInvocations(values);
+        assertNull(get.invoke(cache, "1", (java.util.function.Supplier<String>) () -> null));
+        org.mockito.Mockito.verify(values, org.mockito.Mockito.never()).set(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(java.time.Duration.class));
+
+        var eventType = loader.loadClass("TransferEvent");
+        var eventConstructor = eventType.getConstructor(String.class, String.class);
+        Object event = eventConstructor.newInstance("evt-1", "transfer-1");
+        var delivered = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.function.Consumer<Object> sink = e -> delivered.incrementAndGet();
+        var projectorType = loader.loadClass("NotificationProjector");
+        Object projector = projectorType.getConstructor(java.util.function.Consumer.class).newInstance(sink);
+        var onEvent = projectorType.getMethod("onEvent", eventType);
+        assertEquals(true, onEvent.invoke(projector, event));
+        assertEquals(false, onEvent.invoke(projector, eventConstructor.newInstance("evt-1", "transfer-1")));
+        assertEquals(1, delivered.get());
+        assertThrows(java.lang.reflect.InvocationTargetException.class, () -> onEvent.invoke(projector, eventConstructor.newInstance("evt-1", "different")));
+        assertThrows(java.lang.reflect.InvocationTargetException.class, () -> eventConstructor.newInstance("", "transfer-1"));
+        var attempts = new java.util.concurrent.atomic.AtomicInteger();
+        Object retryProjector = projectorType.getConstructor(java.util.function.Consumer.class).newInstance((java.util.function.Consumer<Object>) e -> {
+            if (attempts.incrementAndGet() == 1) throw new IllegalStateException("temporary failure");
+        });
+        assertThrows(java.lang.reflect.InvocationTargetException.class, () -> onEvent.invoke(retryProjector, event));
+        assertEquals(true, onEvent.invoke(retryProjector, event));
+        assertEquals(false, onEvent.invoke(retryProjector, event));
+        assertEquals(2, attempts.get());
+    }
+
+    @Test void completedOldCurriculumUnlocksFirstNewStepWithoutLosingDrafts() {
+        new TransactionTemplate(transactions).executeWithoutResult(status -> {
+            Project bank = projects.findByCode(ProjectCode.BANK).orElseThrow();
+            Long userId = 99999L;
+            for (Task task : bank.getTasks()) if (task.getOrderIndex() < 8) for (Step step : task.getSteps()) {
+                var progress = new UserStepProgress(userId, step.getId(), StepStatus.COMPLETED);
+                progress.saveDraft("preserved draft");
+                stepProgress.save(progress);
+            }
+            var result = taskEngine.getProjectTasks(userId, bank.getId());
+            assertEquals(11, result.size());
+            assertEquals(StepStatus.ACTIVE, result.get(8).steps().get(0).status());
+            assertEquals(StepStatus.LOCKED, result.get(9).steps().get(0).status());
+            assertEquals("preserved draft", result.get(0).steps().get(0).savedCode());
+            assertEquals(StepStatus.ACTIVE, taskEngine.getProjectTasks(userId, bank.getId()).get(8).steps().get(0).status());
+        });
     }
 
     @Test void loginRestoresDraftProgressAndCurriculumUpdateKeepsIds() throws Exception {

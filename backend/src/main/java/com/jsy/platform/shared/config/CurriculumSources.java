@@ -25,6 +25,12 @@ public final class CurriculumSources {
         group("java.util", "List Set Map HashSet ArrayList Optional");
         group("java.time", "LocalDate LocalDateTime");
         group("java.math", "BigDecimal");
+        group("java.math", "RoundingMode");
+        group("java.time", "Duration");
+        group("java.util", "HashMap");
+        group("java.util.function", "Supplier Consumer");
+        group("org.springframework.data.redis.core", "StringRedisTemplate");
+        group("org.springframework.dao", "DataAccessException");
         group("org.junit.jupiter.api", "Test");
     }
     private static void group(String pkg, String names) { for (String name : names.split(" ")) IMPORTS.put(name, pkg + "." + name); }

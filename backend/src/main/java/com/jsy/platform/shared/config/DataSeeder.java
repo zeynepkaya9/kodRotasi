@@ -1248,9 +1248,16 @@ public class DataSeeder implements CommandLineRunner {
         bank.addTask(task7);
         bank.addTask(task8);
 
+        BankInterviewCurriculum.extend(bank);
         Project savedProject = saveCurriculum(bank);
 
         seedBankHints(savedProject);
+        for (Task task : savedProject.getTasks()) if (task.getOrderIndex() >= 8) for (Step step : task.getSteps()) {
+            saveHint(new Hint(step.getId(), HintLevel.SMALL, "Önce başarısızlık durumlarını düşün: null veya geçersiz girdi, kesinti ve tekrar. Başarıdan önce hangi kontroller gerekli?"));
+            saveHint(new Hint(step.getId(), HintLevel.GUIDE, step.getInstruction()));
+            saveHint(new Hint(step.getId(), HintLevel.CODE, CurriculumSources.codeHint(step.getSolutionCode())));
+            saveHint(new Hint(step.getId(), HintLevel.SOLUTION, step.getSolutionCode()));
+        }
     }
 
     private void seedBankHints(Project bank) {

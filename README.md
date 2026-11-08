@@ -71,7 +71,7 @@ Backend yeniden başladığında dev ders içeriği, mevcut adım kimlikleri kor
 
 ## Projeler
 
-- Banka: 8 adım; BigDecimal, entity, repository, service, REST, hata yönetimi, DTO, Mockito/JUnit.
+- Banka: 11 adım; BigDecimal, entity, repository, service, REST, hata yönetimi, DTO, Mockito/JUnit; transfer girdisi doğrulama, Redis cache-aside ve tekrar teslim edilen olayların işlenmesi.
 - E-ticaret: 6 adım; fiyat/stok kuralları, kategori, sorgular, service, REST ve validation.
 - Kütüphane: 5 adım; kitap, üye, repository, ödünç alma/iade ve REST.
 - Görev takibi: 4 adım; saf Java kapsülleme ve composition’dan Spring bean ve constructor injection’a geçiş.
@@ -89,6 +89,14 @@ npm test
 npm run build
 ```
 
-Backend testleri ayrı, bellek içi H2 kullanır; kullanıcı veritabanını değiştirmez. 23 referans çözümün kurallardan geçmesi, başlangıç kodlarının doğrudan geçmemesi ve dört projenin Java 17 ile derlenmesi kontrol edilir. Seçili domain davranışları ile çıkış/giriş sonrası taslak, XP ve adım devam akışı da test edilir.
+Backend testleri ayrı, bellek içi H2 kullanır; kullanıcı veritabanını değiştirmez. 26 referans çözümün kurallardan geçmesi, başlangıç kodlarının doğrudan geçmemesi ve dört projenin Java 17 ile derlenmesi kontrol edilir. Transfer tutarı, cache hit/miss/kesinti ve olay tekrarları gibi seçili davranışlar ile çıkış/giriş sonrası taslak, XP ve adım devam akışı da test edilir. Bankanın eski görevlerini tamamlamış kullanıcı için ilk yeni görevin açılması ayrıca doğrulanır.
 
 Öğrenci kodu çalıştırılmaz. JDK parser sözdizimi, annotation hedefleri ve metot bildirimlerini kontrol eder. Tip çözümü, bütün iş kuralları ve gerçek veritabanına karşı uygulama davranışı bu kontrolün kapsamı dışındadır. Örnekler eğitim amaçlıdır; tam bir production sistemi değildir.
+
+## Banka Teknik Mülakatı
+
+`/bank-interview` adresindeki herkese açık çalışma rotası 14 konu içerir: Java/OOP, transaction, eşzamanlılık, idempotency, SQL/JPA, Redis, Kafka, outbox/saga, DDD, mikroservis desenleri, güvenlik, test/CI/CD, sorun giderme ve React/Python tekrarı. Her konu başlangıç/orta/ileri anlatım, mülakat sorusu, yanıt rehberi, mini quiz ve öz değerlendirme içerir.
+
+Mülakat notları kullanıcıya göre bu tarayıcıda saklanır; cihazlar arasında eşitlenmez. Misafir notları aynı tarayıcının misafir alanını paylaşır. Öz değerlendirme bir işe alım başarı puanı değildir.
+
+Redis görevi `StringRedisTemplate` ile istemci kodunu öğretir; otomatik testlerde Redis mock kullanılır. Kafka görevi bir broker bağlantısı değil, tekrar teslim davranışının bellek içi Java modelidir. Üretimde kalıcı inbox/outbox, gerçek PostgreSQL/Redis/Kafka integration testleri ve dış yan etkiler için idempotency gerekir. Bu güncelleme canlı platforma Redis/Kafka sunucusu veya ek ücretli servis kurmaz. Kaynak bağlantıları ilgili derslerde bulunur.

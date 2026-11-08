@@ -11,6 +11,14 @@ final class LearningNotesFactory {
     private static final Map<String, String[]> NOTES = new LinkedHashMap<>();
 
     static {
+        note("REDIS_CACHE",
+                "Redis, anahtar ile hızlı veri okuduğun bir bellek veri deposudur. Cache hit aranan değerin bulunması, miss bulunmamasıdır. TTL kaydın ne kadar süre yaşayacağını belirler. Şube bilgisi gibi kısa süre eski kalabilen veriyi burada tutabiliriz.",
+                "Cache-aside: önce cache, yoksa DB ve ardından TTL ile cache yazımı. DB asıl kaynaktır. Redis arızasında DB fallback kapasitesini ve timeout'u planla; null sonucu ve hatayı birbirine karıştırma.",
+                "TTL güçlü tutarlılık sağlamaz. Cache stampede için istek birleştirme ve TTL jitter; invalidation yarışları için sürümleme düşün. Para çekme kararını önbellekteki bakiyeye bağlama.");
+        note("KAFKA_EVENTS",
+                "Kafka, olayları topic adlı akışlarda saklar. Producer olayı yazar, consumer okur. Transfer tamamlandı olayı bildirim ve raporlamayı tetikleyebilir. Partition bir topic'in bölümüdür, offset bölümdeki okuma konumudur.",
+                "Sıralama partition içindedir. Aynı hesap anahtarını seçmek ilgili olayları aynı partition'a yönlendirir; hesaplar arası toplam sıra sağlamaz. Aynı consumer group işi paylaşır, farklı gruplar kendi offset'leriyle okur. Retry nedeniyle tekrar teslim bekle.",
+                "DB değişikliği ve outbox kaydını aynı transaction'a al. Relay tekrar yayımlayabileceği için consumer inbox unique key ve yerel yan etkiyi tek transaction'da işle. Offset DB commit'ten sonra ilerlesin. Retry, dead-letter topic, yeniden oynatma ve consumer lag izlemesini tasarla.");
         note("ENTITY",
                 "Entity, veritabanındaki bir satırı Java nesnesi olarak temsil eden sınıftır. @Entity sınıfı JPA'ya tanıtır; normal bir sınıfı otomatik olarak tabloya dönüştürmez, eşleme bilgisini verir.",
                 "Entity'yi API yanıtı olarak doğrudan döndürmek yerine DTO kullanmayı düşün. İlişkiler ve lazy loading, JSON üretirken beklenmeyen sorgulara yol açabilir.",

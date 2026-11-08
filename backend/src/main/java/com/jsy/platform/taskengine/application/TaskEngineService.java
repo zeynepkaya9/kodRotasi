@@ -77,9 +77,19 @@ public class TaskEngineService {
         return getProjectTasks(userId, project.getId());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<TaskDto> getProjectTasks(Long userId, Long projectId) {
         List<Task> tasks = taskRepository.findByProjectIdOrderByOrderIndex(projectId);
+        // A curriculum can grow after a learner has completed its previous last step.
+        // Materialize new progress and activate only the first unfinished step in sequence.
+        boolean previousCompleted = true;
+        for (Task task : tasks) for (Step step : stepRepository.findByTaskIdOrderByOrderIndex(task.getId())) {
+            var existing = progressRepository.findByUserIdAndStepId(userId, step.getId());
+            var progress = existing.orElseGet(() -> new UserStepProgress(userId, step.getId(), StepStatus.LOCKED));
+            if (previousCompleted && progress.getStatus() == StepStatus.LOCKED) progress.setStatus(StepStatus.ACTIVE);
+            if (existing.isEmpty() || progress.getStatus() == StepStatus.ACTIVE) progressRepository.save(progress);
+            previousCompleted = previousCompleted && progress.getStatus() == StepStatus.COMPLETED;
+        }
         return tasks.stream().map(task -> {
             List<Step> steps = stepRepository.findByTaskIdOrderByOrderIndex(task.getId());
             List<StepDto> stepDtos = steps.stream().map(step -> {

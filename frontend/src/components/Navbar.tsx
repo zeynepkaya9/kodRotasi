@@ -22,6 +22,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+          <Link to="/bank-interview" className="text-primary-300 hover:text-white">Banka Mülakatı</Link>
           {user ? (
             <>
               <Link to="/dashboard" className="text-gray-300 hover:text-white transition-colors">
@@ -29,7 +30,7 @@ export default function Navbar() {
               </Link>
               <Link to="/projects" className="text-gray-300 hover:text-white">Projeler</Link>
               <Link to="/progress" className="text-gray-300 hover:text-white transition-colors">
-                Ilerleme
+                İlerleme
               </Link>
               <div className="flex items-center gap-3 text-sm">
                 <span className="text-primary-400 font-medium">{totalXp} XP</span>
@@ -40,14 +41,14 @@ export default function Navbar() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-400">{user.displayName}</span>
                 <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-danger-500 transition-colors">
-                  Cikis
+                  Çıkış
                 </button>
               </div>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-gray-300 hover:text-white transition-colors">Giris</Link>
-              <Link to="/register" className="btn-primary text-sm">Kayit Ol</Link>
+              <Link to="/login" className="text-gray-300 hover:text-white transition-colors">Giriş</Link>
+              <Link to="/register" className="btn-primary text-sm">Kayıt Ol</Link>
             </>
           )}
         </div>

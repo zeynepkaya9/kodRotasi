@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { selectResumeStep, useAppStore } from '../../lib/store'
 
@@ -61,6 +61,10 @@ export default function ProjectSelectPage() {
         {error && <p role="alert" className="text-red-300 mb-4">{error}</p>}
         <h1 className="text-3xl font-bold text-center mb-3">Proje Sec</h1>
         <p className="text-gray-400 text-center mb-12">Gercek bir proje gelistirerek ogren</p>
+        <Link to="/bank-interview" className="mb-6 block rounded-xl border border-primary-500/30 bg-primary-500/10 p-5">
+          <span className="font-semibold text-primary-300">Banka teknik mülakatına hazırlan →</span>
+          <span className="mt-2 block text-sm text-gray-300">Banka kod görevlerini; Java, SQL, Redis, Kafka, DDD ve sistem tasarımı senaryolarıyla birlikte çalış.</span>
+        </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((p) => (
