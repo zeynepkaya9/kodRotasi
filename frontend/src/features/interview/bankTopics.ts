@@ -47,7 +47,7 @@ export const bankTopics: BankTopic[] = [
     question: 'İki uygulama instance’ı aynı hesaptan para çekiyor. synchronized yeterli mi?',
     answer: 'Hayır, JVM’ler ortak kilit paylaşmaz. DB’de version kontrolü, satır kilidi veya atomik koşullu yazma gerekir. İki ayrı bağlantıyı bariyerle aynı anda başlatır; 100 TL’den iki kez 80 TL çekimde sadece bir başarı ve son bakiyenin 20 TL olduğunu test ederim.',
     checklist: ['Lost update senaryosunu çizdim', 'Optimistic ve pessimistic seçenekleri karşılaştırdım', 'İki bağlantılı concurrency testi anlattım'],
-    exercise: 'A→B ve B→A transferlerinin kilit sırasını çiz. Her iki akışta küçük hesap ID’sini önce kilitlemenin etkisini açıkla.',
+    exercise: 'Bankadaki OptimisticBalance görevini çöz. Aynı 100 TL bakiyeden iki eşzamanlı 80 TL çekimini test et. Sonra A→B ve B→A transferlerinde küçük hesap ID’sini önce kilitlemenin etkisini açıkla.',
     followUp: 'Version conflict sonrası aynı eski nesneyi tekrar save etmek neden yanlış?',
     quiz: {question:'@Transactional tek başına neyi garanti etmez?',options:['Aynı DB transaction’ında atomik commit', 'Her izolasyon seviyesinde lost update’in önlenmesini', 'Rollback kurallarının uygulanmasını'],correct:1,explanation:'İzolasyon ve güncelleme yöntemi önemlidir; eşzamanlılık stratejisi ayrıca seçilmelidir.'}
   },

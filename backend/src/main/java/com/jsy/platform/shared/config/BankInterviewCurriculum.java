@@ -104,6 +104,39 @@ public final class BankInterviewCurriculum {
                     }
                 }
                 """, "hasConstructor()", "methodHasModifier('onEvent','synchronized')", "callsMethod('put')", "callsMethod('accept')");
+        add(bank, 11, "Eşzamanlı çekim: optimistic güncelleme", "Çakışan iki çekimin aynı bakiyeyi harcamasını engelle", "TRANSACTION_MANAGEMENT,ENCAPSULATION",
+                "OptimisticBalance sınıfını AtomicReference<AccountState> ile kur. AccountState(BigDecimal balance, long version) record'u null/negatif bakiyeyi ve negatif version'ı reddetsin. Constructor başlangıç bakiyesini alsın. snapshot() anlık durumu döndürsün. withdraw(BigDecimal amount) null, sıfır, negatif ve ikiden fazla ondalık basamağı reddetsin. Her denemede güncel state'i oku, yeterli bakiyeyi kontrol et; compareAndSet başarısızsa baştan oku. Başarılı işlem yeni balance ve version+1 döndürsün. İki eşzamanlı 80 TL çekimi, 100 TL başlangıç bakiyesinde en fazla bir kez başarılı olmalı.\n\nMülakatta sınırı açıkla: Bu AtomicReference yalnız aynı Java nesnesinin belleğini korur; çoklu uygulama instance'ı, restart veya DB için çözüm değildir. Üretimde JPA @Version/optimistic locking ya da koşullu SQL UPDATE kullan, conflict sonrası yeni transaction'da güncel veriyi okuyup tüm iş kurallarını tekrar değerlendir. Para hareketi kayıtlarını ve idempotency key'ini de transaction'a dâhil et.",
+                "public record AccountState(BigDecimal balance, long version) {\n    // Geçerli durum kuralları\n}\npublic class OptimisticBalance {\n    // AtomicReference, constructor, snapshot ve withdraw\n}",
+                """
+                import java.math.BigDecimal;
+                import java.math.RoundingMode;
+                import java.util.concurrent.atomic.AtomicReference;
+                public record AccountState(BigDecimal balance, long version) {
+                    public AccountState {
+                        if (balance == null || balance.signum() < 0 || version < 0) {
+                            throw new IllegalArgumentException("Geçersiz hesap durumu");
+                        }
+                    }
+                }
+                public class OptimisticBalance {
+                    private final AtomicReference<AccountState> state;
+                    public OptimisticBalance(BigDecimal initial) {
+                        if (initial == null) throw new IllegalArgumentException("Bakiye gerekli");
+                        state = new AtomicReference<>(new AccountState(initial.setScale(2, RoundingMode.UNNECESSARY), 0));
+                    }
+                    public AccountState snapshot() { return state.get(); }
+                    public AccountState withdraw(BigDecimal amount) {
+                        if (amount == null || amount.signum() <= 0) throw new IllegalArgumentException("Tutar pozitif olmalı");
+                        amount = amount.setScale(2, RoundingMode.UNNECESSARY);
+                        while (true) {
+                            AccountState current = state.get();
+                            if (current.balance().compareTo(amount) < 0) throw new IllegalArgumentException("Yetersiz bakiye");
+                            AccountState next = new AccountState(current.balance().subtract(amount), current.version() + 1);
+                            if (state.compareAndSet(current, next)) return next;
+                        }
+                    }
+                }
+                """, "hasConstructor()", "callsMethod('compareAndSet')", "callsMethod('compareTo')", "callsMethod('setScale')");
     }
 
     private static void add(Project bank, int order, String title, String objective, String concepts,

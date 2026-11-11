@@ -36,7 +36,7 @@ function InterviewNotebook({ storageKey }: { storageKey: string }) {
           <Link to="/projects" className="btn-primary">Banka kod görevlerini aç</Link>
           <a href="#study" className="rounded-lg border border-dark-700 px-4 py-2 text-gray-200 hover:bg-dark-700">Mülakat provasına başla</a>
         </div>
-        <p className="mt-4 text-xs leading-5 text-gray-400">14 konu · 11 banka kod görevi · Kendi değerlendirmene göre {completed}/14 konu tekrar edildi. Bu bir mülakat başarı puanı değildir.</p>
+        <p className="mt-4 text-xs leading-5 text-gray-400">14 konu · 12 banka kod görevi · Kendi değerlendirmene göre {completed}/14 konu tekrar edildi. Bu bir mülakat başarı puanı değildir.</p>
       </header>
 
       <section aria-label="Örnek banka mimarisi" className="mb-7 rounded-xl border border-dark-700 bg-dark-800 p-5">

@@ -71,7 +71,7 @@ Backend yeniden başladığında dev ders içeriği, mevcut adım kimlikleri kor
 
 ## Projeler
 
-- Banka: 11 adım; BigDecimal, entity, repository, service, REST, hata yönetimi, DTO, Mockito/JUnit; transfer girdisi doğrulama, Redis cache-aside ve tekrar teslim edilen olayların işlenmesi.
+- Banka: 12 adım; BigDecimal, entity, repository, service, REST, hata yönetimi, DTO, Mockito/JUnit; transfer girdisi doğrulama, Redis cache-aside, tekrar teslim edilen olaylar ve eşzamanlı çekim modeli.
 - E-ticaret: 6 adım; fiyat/stok kuralları, kategori, sorgular, service, REST ve validation.
 - Kütüphane: 5 adım; kitap, üye, repository, ödünç alma/iade ve REST.
 - Görev takibi: 4 adım; saf Java kapsülleme ve composition’dan Spring bean ve constructor injection’a geçiş.
@@ -89,7 +89,7 @@ npm test
 npm run build
 ```
 
-Backend testleri ayrı, bellek içi H2 kullanır; kullanıcı veritabanını değiştirmez. 26 referans çözümün kurallardan geçmesi, başlangıç kodlarının doğrudan geçmemesi ve dört projenin Java 17 ile derlenmesi kontrol edilir. Transfer tutarı, cache hit/miss/kesinti ve olay tekrarları gibi seçili davranışlar ile çıkış/giriş sonrası taslak, XP ve adım devam akışı da test edilir. Bankanın eski görevlerini tamamlamış kullanıcı için ilk yeni görevin açılması ayrıca doğrulanır.
+Backend testleri ayrı, bellek içi H2 kullanır; kullanıcı veritabanını değiştirmez. 27 referans çözümün kurallardan geçmesi, başlangıç kodlarının doğrudan geçmemesi ve dört projenin Java 17 ile derlenmesi kontrol edilir. Transfer tutarı, cache hit/miss/kesinti, olay tekrarları ve iki eşzamanlı çekim gibi seçili davranışlar ile çıkış/giriş sonrası taslak, XP ve adım devam akışı da test edilir. Bankanın eski görevlerini tamamlamış kullanıcı için ilk yeni görevin açılması ayrıca doğrulanır.
 
 Öğrenci kodu çalıştırılmaz. JDK parser sözdizimi, annotation hedefleri ve metot bildirimlerini kontrol eder. Tip çözümü, bütün iş kuralları ve gerçek veritabanına karşı uygulama davranışı bu kontrolün kapsamı dışındadır. Örnekler eğitim amaçlıdır; tam bir production sistemi değildir.
 
@@ -100,3 +100,5 @@ Backend testleri ayrı, bellek içi H2 kullanır; kullanıcı veritabanını de�
 Mülakat notları kullanıcıya göre bu tarayıcıda saklanır; cihazlar arasında eşitlenmez. Misafir notları aynı tarayıcının misafir alanını paylaşır. Öz değerlendirme bir işe alım başarı puanı değildir.
 
 Redis görevi `StringRedisTemplate` ile istemci kodunu öğretir; otomatik testlerde Redis mock kullanılır. Kafka görevi bir broker bağlantısı değil, tekrar teslim davranışının bellek içi Java modelidir. Üretimde kalıcı inbox/outbox, gerçek PostgreSQL/Redis/Kafka integration testleri ve dış yan etkiler için idempotency gerekir. Bu güncelleme canlı platforma Redis/Kafka sunucusu veya ek ücretli servis kurmaz. Kaynak bağlantıları ilgili derslerde bulunur.
+
+Eşzamanlı çekim görevi `AtomicReference` ile yalnız tek JVM içindeki iki isteği modeller. Gerçek çoklu instance ve veritabanı yazmaları için JPA `@Version` veya koşullu SQL güncellemesi ve PostgreSQL üzerinde eşzamanlı integration testi gerekir.

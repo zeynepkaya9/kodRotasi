@@ -31,6 +31,7 @@ public final class CurriculumSources {
         group("java.util.function", "Supplier Consumer");
         group("org.springframework.data.redis.core", "StringRedisTemplate");
         group("org.springframework.dao", "DataAccessException");
+        group("java.util.concurrent.atomic", "AtomicReference");
         group("org.junit.jupiter.api", "Test");
     }
     private static void group(String pkg, String names) { for (String name : names.split(" ")) IMPORTS.put(name, pkg + "." + name); }

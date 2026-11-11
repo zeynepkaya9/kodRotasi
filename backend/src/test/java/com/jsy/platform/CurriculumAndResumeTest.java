@@ -168,6 +168,39 @@ class CurriculumAndResumeTest {
         assertEquals(true, onEvent.invoke(retryProjector, event));
         assertEquals(false, onEvent.invoke(retryProjector, event));
         assertEquals(2, attempts.get());
+        checkConcurrentWithdrawals(loader);
+    }
+
+    private void checkConcurrentWithdrawals(ClassLoader loader) throws Exception {
+        var type = loader.loadClass("OptimisticBalance");
+        var constructor = type.getConstructor(BigDecimal.class);
+        var withdraw = type.getMethod("withdraw", BigDecimal.class);
+        var snapshot = type.getMethod("snapshot");
+        Object account = constructor.newInstance(new BigDecimal("100.00"));
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            java.util.concurrent.Callable<Boolean> attempt = () -> {
+                start.await();
+                try { withdraw.invoke(account, new BigDecimal("80.00")); return true; }
+                catch (java.lang.reflect.InvocationTargetException error) {
+                    if (error.getCause() instanceof IllegalArgumentException) return false;
+                    throw error;
+                }
+            };
+            var first = pool.submit(attempt);
+            var second = pool.submit(attempt);
+            start.countDown();
+            assertEquals(1, (first.get() ? 1 : 0) + (second.get() ? 1 : 0));
+            Object state = snapshot.invoke(account);
+            assertEquals(new BigDecimal("20.00"), state.getClass().getMethod("balance").invoke(state));
+            assertEquals(1L, state.getClass().getMethod("version").invoke(state));
+            assertThrows(java.lang.reflect.InvocationTargetException.class, () -> withdraw.invoke(account, new BigDecimal("0.00")));
+            assertThrows(java.lang.reflect.InvocationTargetException.class, () -> withdraw.invoke(account, new BigDecimal("1.001")));
+            assertThrows(java.lang.reflect.InvocationTargetException.class, () -> constructor.newInstance(new BigDecimal("-1")));
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test void completedOldCurriculumUnlocksFirstNewStepWithoutLosingDrafts() {
@@ -180,9 +213,10 @@ class CurriculumAndResumeTest {
                 stepProgress.save(progress);
             }
             var result = taskEngine.getProjectTasks(userId, bank.getId());
-            assertEquals(11, result.size());
+            assertEquals(12, result.size());
             assertEquals(StepStatus.ACTIVE, result.get(8).steps().get(0).status());
             assertEquals(StepStatus.LOCKED, result.get(9).steps().get(0).status());
+            assertEquals(StepStatus.LOCKED, result.get(11).steps().get(0).status());
             assertEquals("preserved draft", result.get(0).steps().get(0).savedCode());
             assertEquals(StepStatus.ACTIVE, taskEngine.getProjectTasks(userId, bank.getId()).get(8).steps().get(0).status());
         });
